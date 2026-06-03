@@ -35,6 +35,18 @@ def load() -> dict:
     return dict(DEFAULT_CONFIG)
 
 
+def sanitize(config: dict) -> dict:
+    """Strip whitespace and trailing '/' for URL settings."""
+    sanitized = {}
+    for key, value in config.items():
+        if isinstance(value, str):
+            value = value.strip()
+            if key.endswith("_URL"):
+                value = value.rstrip("/")
+        sanitized[key] = value
+    return sanitized
+
+
 def save(config: dict) -> None:
     """Save the given config dict to the JSON file."""
     CONFIG_FILE.write_text(json.dumps(config, indent=2) + "\n")

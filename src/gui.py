@@ -6,8 +6,8 @@ from tkinter import filedialog, scrolledtext
 from config.wikibase_setup import CONFIG_FILE, create_login
 from config.wikibase_setup import apply as apply_config
 from config.wikibase_setup import load as load_config
+from config.wikibase_setup import sanitize as sanitize_config
 from config.wikibase_setup import save as save_config
-
 from fix_statement_redirects import run_fix_statement_redirects
 from resolve_double_redirects import run_resolve_double_redirects
 
@@ -98,7 +98,7 @@ class RedirectCleanupGUI:
         self.text_area.pack(fill=tk.BOTH, expand=True, padx=10, pady=(10, 10))
 
         # --- Load config from file (or create file with defaults) ---
-        config = load_config()
+        config = sanitize_config(load_config())
         apply_config(config)
         if not CONFIG_FILE.exists():
             save_config(config)
@@ -117,7 +117,7 @@ class RedirectCleanupGUI:
 
     def open_wikibase_settings(self):
         """Open a settings dialog to view / edit the Wikibase configuration."""
-        current = load_config()
+        current = sanitize_config(load_config())
 
         dialog = tk.Toplevel(self.root)
         dialog.title("Settings")
@@ -164,6 +164,7 @@ class RedirectCleanupGUI:
 
         def do_save():
             new_config = {key: var.get().strip() for key, var in entries.items()}
+            new_config = sanitize_config(new_config)
             save_config(new_config)
             apply_config(new_config)
             dialog.destroy()
