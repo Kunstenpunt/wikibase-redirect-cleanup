@@ -1,4 +1,14 @@
-def entity_id_from_uri(uri, prefix="https://kg.kunsten.be/entity/"):
+from wikibaseintegrator.wbi_config import config as wbi_config
+
+
+def _wikibase_base_url() -> str:
+    """Return the entity URI prefix from the active config."""
+    return str(wbi_config.get("WIKIBASE_URL"))
+
+
+def entity_id_from_uri(uri, prefix=None):
+    if prefix is None:
+        prefix = _wikibase_base_url() + "/entity/"
     return uri.replace(prefix, "")
 
 
@@ -13,7 +23,7 @@ def statement_redirect_query_result_to_edit_list(query_result):
         edit_row.append(
             entity_id_from_uri(
                 row["subject"]["value"],
-                prefix="https://kg.kunsten.be/entity/statement/",
+                prefix=_wikibase_base_url() + "/entity/statement/",
             ).replace("-", "$", 1)
         )
         edit_row.append(entity_id_from_uri(row["old"]["value"]))

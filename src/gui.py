@@ -3,7 +3,11 @@ import threading
 import tkinter as tk
 from tkinter import filedialog, scrolledtext
 
-from config.wikibase_setup import create_login
+from config.wikibase_setup import CONFIG_FILE, create_login
+from config.wikibase_setup import apply as apply_config
+from config.wikibase_setup import load as load_config
+from config.wikibase_setup import save as save_config
+
 from fix_statement_redirects import run_fix_statement_redirects
 from resolve_double_redirects import run_resolve_double_redirects
 
@@ -30,21 +34,29 @@ class RedirectCleanupGUI:
 
         self.task_running = False
 
-        # --- Credentials frame ---
-        cred_frame = tk.Frame(root)
-        cred_frame.pack(fill=tk.X, padx=10, pady=(10, 0))
+        # --- Wikibase setup frame ---
+        setup_frame = tk.Frame(root)
+        setup_frame.pack(fill=tk.X, padx=10, pady=(10, 0))
 
-        tk.Label(cred_frame, text="Username:").pack(side=tk.LEFT)
+        tk.Label(setup_frame, text="Username:").pack(side=tk.LEFT)
         self.username_var = tk.StringVar()
-        username_entry = tk.Entry(cred_frame, textvariable=self.username_var, width=20)
+        username_entry = tk.Entry(setup_frame, textvariable=self.username_var, width=20)
         username_entry.pack(side=tk.LEFT, padx=(4, 16))
 
-        tk.Label(cred_frame, text="Botpassword:").pack(side=tk.LEFT)
+        tk.Label(setup_frame, text="Botpassword:").pack(side=tk.LEFT)
         self.password_var = tk.StringVar()
         password_entry = tk.Entry(
-            cred_frame, textvariable=self.password_var, width=20, show="*"
+            setup_frame, textvariable=self.password_var, width=20, show="*"
         )
         password_entry.pack(side=tk.LEFT, padx=(4, 0))
+
+        button_settings = tk.Button(
+            setup_frame,
+            text="Wikibase Instance Config",
+            command=self.open_wikibase_settings,
+            width=22,
+        )
+        button_settings.pack(side=tk.RIGHT)
 
         # --- Buttons frame ---
         button_frame = tk.Frame(root)
@@ -85,6 +97,12 @@ class RedirectCleanupGUI:
         )
         self.text_area.pack(fill=tk.BOTH, expand=True, padx=10, pady=(10, 10))
 
+        # --- Load config from file (or create file with defaults) ---
+        config = load_config()
+        apply_config(config)
+        if not CONFIG_FILE.exists():
+            save_config(config)
+
         # --- Queue for thread-safe output ---
         self.queue = queue.Queue()
         self.root.after(100, self.poll_queue)
@@ -96,6 +114,67 @@ class RedirectCleanupGUI:
         )
         if path:
             self.log_path_var.set(path)
+
+    def open_wikibase_settings(self):
+        """Open a settings dialog to view / edit the Wikibase configuration."""
+        current = load_config()
+
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Settings")
+        dialog.resizable(False, False)
+
+        fields = [
+            ("DEFAULT_LANGUAGE", "Default language"),
+            ("WIKIBASE_URL", "Wikibase URL"),
+            ("MEDIAWIKI_API_URL", "MediaWiki API URL"),
+            ("MEDIAWIKI_INDEX_URL", "MediaWiki index URL"),
+            ("MEDIAWIKI_REST_URL", "MediaWiki REST URL"),
+            ("SPARQL_ENDPOINT_URL", "SPARQL endpoint URL"),
+        ]
+
+        entries = {}
+        for row_idx, (key, label) in enumerate(fields):
+            tk.Label(dialog, text=label + ":", anchor="e", width=24).grid(
+                row=row_idx, column=0, sticky="e", padx=(10, 4), pady=4
+            )
+            var = tk.StringVar(value=current.get(key, ""))
+            entry = tk.Entry(dialog, textvariable=var, width=70)
+            entry.grid(row=row_idx, column=1, sticky="we", padx=(0, 10), pady=4)
+            entries[key] = var
+
+        # Config file location
+        sep_row = len(fields)
+        tk.Frame(dialog, height=2, relief="sunken", bd=1).grid(
+            row=sep_row, column=0, columnspan=2, sticky="we", padx=10, pady=(8, 4)
+        )
+        tk.Label(dialog, text="Config file:", anchor="e", width=24).grid(
+            row=sep_row + 1, column=0, sticky="e", padx=(10, 4), pady=2
+        )
+        tk.Label(
+            dialog,
+            text=str(CONFIG_FILE),
+            anchor="w",
+            fg="gray",
+            font=("Consolas", 9),
+        ).grid(row=sep_row + 1, column=1, sticky="w", padx=(0, 10), pady=2)
+
+        # Buttons
+        btn_frame = tk.Frame(dialog)
+        btn_frame.grid(row=sep_row + 2, column=0, columnspan=2, pady=(10, 10))
+
+        def do_save():
+            new_config = {key: var.get().strip() for key, var in entries.items()}
+            save_config(new_config)
+            apply_config(new_config)
+            dialog.destroy()
+            self.write_output("Settings saved and applied.")
+
+        tk.Button(btn_frame, text="Save", width=12, command=do_save).pack(
+            side=tk.LEFT, padx=(0, 10)
+        )
+        tk.Button(btn_frame, text="Cancel", width=12, command=dialog.destroy).pack(
+            side=tk.LEFT
+        )
 
     def write_output(self, text: str):
         """Insert text into the output area (must be called from the main thread)."""

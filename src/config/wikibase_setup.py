@@ -1,15 +1,48 @@
+import json
+from pathlib import Path
+
 from wikibaseintegrator.wbi_config import config as wbi_config
 from wikibaseintegrator.wbi_login import Login
 
-# De nodige configuratie voor onze wikibase instantie
-wbi_config["DEFAULT_LANGUAGE"] = "nl"
-wbi_config["WIKIBASE_URL"] = "https://kg.kunsten.be"
-wbi_config["MEDIAWIKI_API_URL"] = "https://kg.kunsten.be/w/api.php"
-wbi_config["MEDIAWIKI_INDEX_URL"] = "https://kg.kunsten.be/w/index.php"
-wbi_config["MEDIAWIKI_REST_URL"] = "https://kg.kunsten.be/w/rest.php"
-wbi_config["SPARQL_ENDPOINT_URL"] = (
-    "https://kg.kunsten.be/query/proxy/wdqs/bigdata/namespace/wdq/sparql"
-)
+CONFIG_FILE = Path(__file__).parent / "wikibase_config.json"
+
+DEFAULT_CONFIG = {
+    "DEFAULT_LANGUAGE": "nl",
+    "WIKIBASE_URL": "https://kg.kunsten.be",
+    "MEDIAWIKI_API_URL": "https://kg.kunsten.be/w/api.php",
+    "MEDIAWIKI_INDEX_URL": "https://kg.kunsten.be/w/index.php",
+    "MEDIAWIKI_REST_URL": "https://kg.kunsten.be/w/rest.php",
+    "SPARQL_ENDPOINT_URL": "https://kg.kunsten.be/query/proxy/wdqs/bigdata/namespace/wdq/sparql",
+}
+
+
+def load() -> dict:
+    """Load config from the JSON file, or return defaults if the file doesn't exist."""
+    if CONFIG_FILE.exists():
+        with open(CONFIG_FILE, "r") as f:
+            stored = json.load(f)
+        # Merge: keep any keys the user may have added, fall back to defaults
+        return {**DEFAULT_CONFIG, **stored}
+    return dict(DEFAULT_CONFIG)
+
+
+def save(config: dict) -> None:
+    """Save the given config dict to the JSON file."""
+    CONFIG_FILE.write_text(json.dumps(config, indent=2) + "\n")
+
+
+def apply(config: dict) -> None:
+    """Apply the given config dict to the global wikibaseintegrator config."""
+    for key in (
+        "DEFAULT_LANGUAGE",
+        "WIKIBASE_URL",
+        "MEDIAWIKI_API_URL",
+        "MEDIAWIKI_INDEX_URL",
+        "MEDIAWIKI_REST_URL",
+        "SPARQL_ENDPOINT_URL",
+    ):
+        if key in config:
+            wbi_config[key] = config[key]
 
 
 def create_login(user: str, password: str) -> Login:
