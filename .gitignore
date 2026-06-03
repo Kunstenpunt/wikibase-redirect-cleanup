@@ -9,6 +9,7 @@ __pycache__/
 dist/
 build/
 .eggs/
+*.spec
 
 # Virtual environment (Pipenv, venv, etc.)
 .venv/
@@ -31,3 +32,6 @@ htmlcov/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Local configuration
+config.json

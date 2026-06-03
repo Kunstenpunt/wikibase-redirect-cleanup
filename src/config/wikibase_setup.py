@@ -1,10 +1,19 @@
 import json
+import sys
 from pathlib import Path
 
 from wikibaseintegrator.wbi_config import config as wbi_config
 from wikibaseintegrator.wbi_login import Login
 
-CONFIG_FILE = Path(__file__).parent / "wikibase_config.json"
+
+def _app_dir() -> Path:
+    """Return the directory containing the application (works with PyInstaller)."""
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent
+    return Path(__file__).resolve().parent.parent
+
+
+CONFIG_FILE = _app_dir() / "config.json"
 
 DEFAULT_CONFIG = {
     "DEFAULT_LANGUAGE": "nl",
