@@ -18,9 +18,7 @@ def run_resolve_double_redirects(login, output=print, error_log_path=None):
     SELECT DISTINCT ?old ?new ?newer
     WHERE {
       ?old owl:sameAs ?new .
-      FILTER NOT EXISTS { ?new wikibase:sitelinks [] }
       ?new owl:sameAs ?newer .
-      ?newer wikibase:sitelinks [] .
     }
     """
 
