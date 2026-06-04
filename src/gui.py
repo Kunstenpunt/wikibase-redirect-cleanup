@@ -12,16 +12,6 @@ from fix_statement_redirects import run_fix_statement_redirects
 from resolve_double_redirects import run_resolve_double_redirects
 
 
-class OutputQueue:
-    """Wraps a queue.Queue so it can be passed as the `output` callback to scripts."""
-
-    def __init__(self, q: queue.Queue):
-        self.q = q
-
-    def write(self, message: str):
-        self.q.put(str(message))
-
-
 class RedirectCleanupGUI:
     def __init__(self, root: tk.Tk):
         self.root = root
@@ -75,6 +65,17 @@ class RedirectCleanupGUI:
         )
         button_double_redirects.pack(side=tk.LEFT)
 
+        self.cancel_event: threading.Event | None = None
+        self.button_cancel = tk.Button(
+            button_frame,
+            text="Cancel",
+            command=self.cancel_task,
+            width=22,
+            state=tk.DISABLED,
+            fg="red",
+        )
+        self.button_cancel.pack(side=tk.RIGHT)
+
         # --- Error log path ---
         log_frame = tk.Frame(root)
         log_frame.pack(fill=tk.X, padx=10, pady=(8, 0))
@@ -83,10 +84,10 @@ class RedirectCleanupGUI:
         self.log_path_var = tk.StringVar()
         log_entry = tk.Entry(log_frame, textvariable=self.log_path_var, width=50)
         log_entry.pack(side=tk.LEFT, padx=(8, 8), fill=tk.X, expand=True)
-        btn_browse = tk.Button(
+        button_browse = tk.Button(
             log_frame, text="Browse...", command=self.browse_log_path
         )
-        btn_browse.pack(side=tk.LEFT)
+        button_browse.pack(side=tk.LEFT)
 
         # --- Output text area ---
         self.text_area = scrolledtext.ScrolledText(
@@ -101,11 +102,26 @@ class RedirectCleanupGUI:
             save_config(config)
 
         # --- Queue for thread-safe output ---
-        self.queue = queue.Queue()
-        self.output_queue = OutputQueue(self.queue)
+        self.queue: queue.Queue[str] = queue.Queue()
         self.root.after(100, self.poll_queue)
 
-    def browse_log_path(self):
+        # --- Keep list of buttons for easy enabling / disabling ---
+        self.buttons = [
+            button_settings,
+            button_single_redirects,
+            button_double_redirects,
+            button_browse,
+        ]
+
+    def cancel_task(self) -> None:
+        if self.cancel_event is not None:
+            self.queue.put(
+                "--- Cancellation requested — finishing current item then stopping... ---"
+            )
+            self.cancel_event.set()
+            self.button_cancel.config(state=tk.DISABLED)
+
+    def browse_log_path(self) -> None:
         path = filedialog.asksaveasfilename(
             defaultextension=".csv",
             filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
@@ -113,7 +129,7 @@ class RedirectCleanupGUI:
         if path:
             self.log_path_var.set(path)
 
-    def open_wikibase_settings(self):
+    def open_wikibase_settings(self) -> None:
         """Open a settings dialog to view / edit the Wikibase configuration."""
         current_config = sanitize_config(load_config())
 
@@ -160,13 +176,13 @@ class RedirectCleanupGUI:
         btn_frame = tk.Frame(dialog)
         btn_frame.grid(row=separator_row + 2, column=0, columnspan=2, pady=(10, 10))
 
-        def do_save():
+        def do_save() -> None:
             new_config = {key: var.get() for key, var in entries.items()}
             new_config = sanitize_config(new_config)
             save_config(new_config)
             apply_config(new_config)
             dialog.destroy()
-            self.output_queue.write("Settings saved and applied.")
+            self.queue.put("Settings saved and applied.")
 
         tk.Button(btn_frame, text="Save", width=12, command=do_save).pack(
             side=tk.LEFT, padx=(0, 10)
@@ -175,14 +191,14 @@ class RedirectCleanupGUI:
             side=tk.LEFT
         )
 
-    def write_output(self, text: str):
+    def write_output(self, text: str) -> None:
         """Insert text into the output area (must be called from the main thread)."""
-        self.text_area.config(state=tk.NORMAL)
+        self.text_area.config(state="normal")
         self.text_area.insert(tk.END, text + "\n")
         self.text_area.see(tk.END)
-        self.text_area.config(state=tk.DISABLED)
+        self.text_area.config(state="disabled")
 
-    def poll_queue(self):
+    def poll_queue(self) -> None:
         """Periodically check the queue for new output from worker threads."""
         try:
             while True:
@@ -192,42 +208,41 @@ class RedirectCleanupGUI:
             pass
         self.root.after(100, self.poll_queue)
 
-    def on_task_done(self):
+    def on_task_done(self) -> None:
         """Re-enable buttons when a task finishes."""
         self.task_running = False
-        self.output_queue.write("--- Task finished ---")
+        self.cancel_event = None
+        self.queue.put("--- Task finished ---")
         self.enable_buttons(True)
 
-    def enable_buttons(self, enabled: bool):
-        state = tk.NORMAL if enabled else tk.DISABLED
-        for child in self.root.winfo_children():
-            if isinstance(child, tk.Frame):
-                for grandchild in child.winfo_children():
-                    if isinstance(grandchild, tk.Button):
-                        grandchild.config(state=state)
+    def enable_buttons(self, enabled: bool) -> None:
+        for button in self.buttons:
+            button.config(state="normal" if enabled else "disabled")
+        self.button_cancel.config(state="normal" if not enabled else "disabled")
 
-    def run_script(self, script_name: str):
+    def run_script(self, script_name: str) -> None:
         # Validate credentials
         username = self.username_var.get().strip()
         password = self.password_var.get()
         if not username or not password:
-            self.output_queue.write("Please enter both username and password.")
+            self.queue.put("Please enter both username and password.")
             return
 
         if self.task_running:
-            self.output_queue.write("A task is already running. Please wait.")
+            self.queue.put("A task is already running. Please wait.")
             return
 
         self.task_running = True
+        self.cancel_event = threading.Event()
         self.enable_buttons(False)
 
         error_log_path = self.log_path_var.get().strip() or None
 
-        self.output_queue.write(f"--- Starting: {script_name} ---")
+        self.queue.put(f"--- Starting: {script_name} ---")
 
         thread = threading.Thread(
             target=self._run_script_thread,
-            args=(script_name, self.output_queue, error_log_path, username, password),
+            args=(script_name, error_log_path, username, password),
             daemon=True,
         )
         thread.start()
@@ -235,29 +250,34 @@ class RedirectCleanupGUI:
     def _run_script_thread(
         self,
         script_name: str,
-        output_queue: OutputQueue,
         error_log_path: str | None,
         username: str,
         password: str,
-    ):
+    ) -> None:
         try:
             login = create_login(username, password)
             if script_name == "fix_statement_redirects":
                 run_fix_statement_redirects(
-                    login, output=output_queue.write, error_log_path=error_log_path
+                    login,
+                    output=self.queue.put,
+                    error_log_path=error_log_path,
+                    cancel_event=self.cancel_event,
                 )
             elif script_name == "resolve_double_redirects":
                 run_resolve_double_redirects(
-                    login, output=output_queue.write, error_log_path=error_log_path
+                    login,
+                    output=self.queue.put,
+                    error_log_path=error_log_path,
+                    cancel_event=self.cancel_event,
                 )
         except Exception as exc:
-            output_queue.write(f"Unhandled error: {exc}")
+            self.queue.put(f"Unhandled error: {exc}")
         finally:
             # Schedule the "task done" callback back on the main thread
             self.root.after(0, self.on_task_done)
 
 
-def main():
+def main() -> None:
     root = tk.Tk()
     RedirectCleanupGUI(root)  # reference kept by root's event loop
     root.mainloop()

@@ -1,20 +1,31 @@
 import json
+import threading
+from typing import Callable
 
-from utils.csv_logger import Logger
-from utils.utils import statement_redirect_query_result_to_edit_list
+from wikibaseintegrator import wbi_login
 from wikibaseintegrator.wbi_helpers import (
     execute_sparql_query,
     mediawiki_api_call_helper,
 )
 
+from utils.csv_logger import Logger
+from utils.utils import statement_redirect_query_result_to_edit_list
 
-def run_fix_statement_redirects(login, output=print, error_log_path=None):
+
+def run_fix_statement_redirects(
+    login: wbi_login.Login | None,
+    output: Callable[[str], None] = print,
+    error_log_path: str | None = None,
+    cancel_event: threading.Event | None = None,
+) -> None:
     """Fix statements that point to redirected entities.
 
     Args:
         login: A wikibaseintegrator Login object (from create_login in config.wikibase_setup).
         output: A callable for status/output messages (default: print).
         error_log_path: Optional path to a CSV file for logging errors.
+        cancel_event: An optional threading.Event. When set, the function will
+            stop processing further statements as soon as possible.
     """
     query = """
     SELECT DISTINCT ?subject ?old ?new
@@ -42,6 +53,10 @@ def run_fix_statement_redirects(login, output=print, error_log_path=None):
         logger = None
 
     for index, [statement_id, old_id, new_id] in enumerate(edit_list):
+        if cancel_event is not None and cancel_event.is_set():
+            output("Cancellation requested — stopping fix_statement_redirects.")
+            return
+
         output(
             f"Changing statement {statement_id} to accomodate redirect: {old_id} -> {new_id} ({index + 1}/{total})"
         )
@@ -68,5 +83,7 @@ def run_fix_statement_redirects(login, output=print, error_log_path=None):
             mediawiki_api_call_helper(data=params, login=login, is_bot=True)
         except Exception as err:
             if logger is not None:
-                logger.write_row([statement_id, old_id, new_id, type(err), err])
-            output(err)
+                logger.write_row(
+                    [statement_id, old_id, new_id, str(type(err)), str(err)]
+                )
+            output(str(err))

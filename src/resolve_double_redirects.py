@@ -1,18 +1,30 @@
-from utils.csv_logger import Logger
-from utils.utils import double_redirects_query_result_to_edit_list
+import threading
+from typing import Callable
+
+from wikibaseintegrator import wbi_login
 from wikibaseintegrator.wbi_helpers import (
     execute_sparql_query,
     mediawiki_api_call_helper,
 )
 
+from utils.csv_logger import Logger
+from utils.utils import double_redirects_query_result_to_edit_list
 
-def run_resolve_double_redirects(login, output=print, error_log_path=None):
+
+def run_resolve_double_redirects(
+    login: wbi_login.Login | None,
+    output: Callable[[str], None] = print,
+    error_log_path: str | None = None,
+    cancel_event: threading.Event | None = None,
+) -> None:
     """Resolve redirects that point to other redirects instead of the final entity.
 
     Args:
         login: A wikibaseintegrator Login object (from create_login in config.wikibase_setup).
         output: A callable for status/output messages (default: print).
         error_log_path: Optional path to a CSV file for logging errors.
+        cancel_event: An optional threading.Event. When set, the function will
+            stop processing further redirects as soon as possible.
     """
     query = """
     SELECT DISTINCT ?old ?new ?newer
@@ -41,6 +53,10 @@ def run_resolve_double_redirects(login, output=print, error_log_path=None):
         logger = None
 
     for index, [old_id, new_id, newer_id] in enumerate(edit_list):
+        if cancel_event is not None and cancel_event.is_set():
+            output("Cancellation requested — stopping resolve_double_redirects.")
+            return
+
         output(
             f"Changing redirect {old_id} to point directly to {newer_id} instead of {new_id} ({index + 1}/{total})"
         )
@@ -53,8 +69,8 @@ def run_resolve_double_redirects(login, output=print, error_log_path=None):
 
         try:
             result = mediawiki_api_call_helper(data=params, login=login)
-            output(result)
+            output(str(result))
         except Exception as err:
             if logger is not None:
-                logger.write_row([old_id, new_id, newer_id, type(err), err])
+                logger.write_row([old_id, new_id, newer_id, str(type(err)), str(err)])
             output(f"Error while calling wbcreateredirect: {err}, {type(err)}")

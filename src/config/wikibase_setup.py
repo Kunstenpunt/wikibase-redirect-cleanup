@@ -1,6 +1,7 @@
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 from wikibaseintegrator.wbi_config import config as wbi_config
 from wikibaseintegrator.wbi_login import Login
@@ -25,7 +26,7 @@ DEFAULT_CONFIG = {
 }
 
 
-def load() -> dict:
+def load() -> dict[str, Any]:
     """Load config from the JSON file, or return defaults if the file doesn't exist."""
     if CONFIG_FILE.exists():
         with open(CONFIG_FILE, "r") as f:
@@ -35,7 +36,7 @@ def load() -> dict:
     return dict(DEFAULT_CONFIG)
 
 
-def sanitize(config: dict) -> dict:
+def sanitize(config: dict[str, Any]) -> dict[str, Any]:
     """Strip whitespace and trailing '/' for URL settings."""
     sanitized = {}
     for key, value in config.items():
@@ -47,12 +48,12 @@ def sanitize(config: dict) -> dict:
     return sanitized
 
 
-def save(config: dict) -> None:
+def save(config: dict[str, Any]) -> None:
     """Save the given config dict to the JSON file."""
     CONFIG_FILE.write_text(json.dumps(config, indent=2) + "\n")
 
 
-def apply(config: dict) -> None:
+def apply(config: dict[str, Any]) -> None:
     """Apply the given config dict to the global wikibaseintegrator config."""
     for key in (
         "DEFAULT_LANGUAGE",
