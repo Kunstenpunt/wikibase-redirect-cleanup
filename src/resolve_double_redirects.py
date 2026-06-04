@@ -1,3 +1,4 @@
+import argparse
 import threading
 from typing import Callable
 
@@ -7,6 +8,7 @@ from wikibaseintegrator.wbi_helpers import (
     mediawiki_api_call_helper,
 )
 
+import config.wikibase_setup as wb_config
 from utils.csv_logger import Logger
 from utils.utils import double_redirects_query_result_to_edit_list
 
@@ -74,3 +76,20 @@ def run_resolve_double_redirects(
             if logger is not None:
                 logger.write_row([old_id, new_id, newer_id, str(type(err)), str(err)])
             output(f"Error while calling wbcreateredirect: {err}, {type(err)}")
+
+
+if __name__ == "__main__":
+    config = wb_config.sanitize(wb_config.load())
+    wb_config.save(config)
+    wb_config.apply(config)
+
+    parser = argparse.ArgumentParser(
+        description="Resolve double redirects in wikibase instance, using given username and botpassword. Make sure correct config info is present in adjacent config.json file."
+    )
+    parser.add_argument("username", help="Username for authentication")
+    parser.add_argument("botpassword", help="Bot password for authentication")
+    args = parser.parse_args()
+
+    run_resolve_double_redirects(
+        wb_config.create_login(args.username, args.botpassword)
+    )

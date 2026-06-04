@@ -1,3 +1,4 @@
+import argparse
 import json
 import threading
 from typing import Callable
@@ -8,6 +9,7 @@ from wikibaseintegrator.wbi_helpers import (
     mediawiki_api_call_helper,
 )
 
+import config.wikibase_setup as wb_config
 from utils.csv_logger import Logger
 from utils.utils import statement_redirect_query_result_to_edit_list
 
@@ -87,3 +89,18 @@ def run_fix_statement_redirects(
                     [statement_id, old_id, new_id, str(type(err)), str(err)]
                 )
             output(str(err))
+
+
+if __name__ == "__main__":
+    config = wb_config.sanitize(wb_config.load())
+    wb_config.save(config)
+    wb_config.apply(config)
+
+    parser = argparse.ArgumentParser(
+        description="Fix statement redirects in wikibase instance, using given username and botpassword. Make sure correct config info is present in adjacent config.json file."
+    )
+    parser.add_argument("username", help="Username for authentication")
+    parser.add_argument("botpassword", help="Bot password for authentication")
+    args = parser.parse_args()
+
+    run_fix_statement_redirects(wb_config.create_login(args.username, args.botpassword))
