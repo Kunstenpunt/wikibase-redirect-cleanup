@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "ea178165d0d280018c586182f807ce91a7e9a197846d765015e0daa054fa7880"
+            "sha256": "091b94d8b0108844d29714cc3d6ea68e7e15f759c763e54497b711f3a23d6b9d"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -532,6 +532,14 @@
             "markers": "python_version >= '3.9'",
             "version": "==1.1.1"
         },
+        "pefile": {
+            "hashes": [
+                "sha256:3ff6c5d8b43e8c37bb6e6dd5085658d658a7a0bdcd20b6a07b1fcfc1c4e9d632",
+                "sha256:76f8b485dcd3b1bb8166f1128d395fa3d87af26360c2358fb75b80019b957c6f"
+            ],
+            "markers": "python_full_version >= '3.6.0'",
+            "version": "==2024.8.26"
+        },
         "pyinstaller": {
             "hashes": [
                 "sha256:03696bb6350177c6bc23bcaf78e71a33c4a89b6754dd90d1be2f318e978c918b",
@@ -558,6 +566,15 @@
             ],
             "markers": "python_version >= '3.8'",
             "version": "==2026.5"
+        },
+        "pywin32-ctypes": {
+            "hashes": [
+                "sha256:8a1513379d709975552d202d942d9837758905c8d01eb82b8bcc30918929e7b8",
+                "sha256:d162dc04946d704503b2edc4d55f3dba5c1d539ead017afa00142c38b9885755"
+            ],
+            "index": "pypi",
+            "markers": "python_version >= '3.6'",
+            "version": "==0.2.3"
         },
         "setuptools": {
             "hashes": [

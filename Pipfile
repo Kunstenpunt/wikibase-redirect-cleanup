@@ -9,6 +9,7 @@ wikibaseintegrator = "*"
 [dev-packages]
 pyinstaller = "*"
 mypy = "*"
+pywin32-ctypes = "*"
 
 [requires]
 python_version = "3.13"
