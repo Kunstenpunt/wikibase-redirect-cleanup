@@ -52,6 +52,7 @@ To run the app:
 To run a specific script (fill in `config.json` correctly next to the script for wikibase instance settings):
 
 `pipenv run python src/fix_statement_redirects.py USERNAME BOTNAME@BOTPASSWORD`
+
 `pipenv run python src/resolve_double_redirects.py USERNAME BOTNAME@BOTPASSWORD`
 
 To do the static type check:
