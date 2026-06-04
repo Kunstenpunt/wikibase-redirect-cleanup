@@ -20,7 +20,8 @@ This tool will not remove the actual redirects themselves (as this information m
 ## Usage
 
 To use, do the following:
-- **launch** the tool
+- [**download**](https://github.com/Kunstenpunt/wikibase-redirect-cleanup/releases/latest) the tool
+- **launch** the tool (see the next section if you are running from source)
 - make sure your **wikibase instance settings** are entered correctly using the corresponding "Wikibase Instance Config" button (these settings are saved in a `json.config` file next to the executable and will be loaded on subsequent launches)
 
 <div align="center"><img width="759" height="291" alt="Screenshot 2026-06-04 192719" src="https://github.com/user-attachments/assets/4fa2ecdf-d245-4a90-884f-cb59c43bff13"></div>
@@ -34,7 +35,7 @@ The tool can also save wikibase edit error logs to `.csv` files if desired (idea
 
 Make sure to create a **bot/botpassword with the correct permissions** (basic rights, high-volume (bot) access, editing existing pages). The user itself should also have the **bot** role.
 
-## Code Environment
+## Running from source
 The tool uses `pipenv` for the environment handling. Install it on your system, preferably together with `pyenv` to handle automatic installation of different python versions. Then run the following to set up the environment:
 
 `pipenv install` and `pipenv install --dev` for the development dependencies (`mypy` and `pyinstaller`)
