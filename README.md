@@ -1,6 +1,10 @@
+
+
 # Wikibase Redirect Cleanup
 
-Extremely simple GUI tool that uses WikibaseIntegrator to fix (double) redirects in a wikibase instance.
+Extremely basic **GUI tool** that uses [WikibaseIntegrator](https://github.com/LeMyst/WikibaseIntegrator) to **fix (double) redirects in a wikibase instance**.
+
+<div align="center"><img width="653" height="409" alt="Screenshot 2026-06-04 192624" src="https://github.com/user-attachments/assets/c4135a7a-947a-430f-b73e-7254f36f9f5b"></div>
 
 ## Purpose
 
@@ -16,12 +20,15 @@ This tool will not remove the actual redirects themselves (as this information m
 ## Usage
 
 To use, do the following:
-- launch the tool
-- make sure your wikibase instance settings are entered correctly using the corresponding "Wikibase Instance Config" button (these settings are saved in a `json.config` file next to the executable and will be loaded on subsequent launches)
-- add your username and the botpassword
+- **launch** the tool
+- make sure your **wikibase instance settings** are entered correctly using the corresponding "Wikibase Instance Config" button (these settings are saved in a `json.config` file next to the executable and will be loaded on subsequent launches)
+
+<div align="center"><img width="759" height="291" alt="Screenshot 2026-06-04 192719" src="https://github.com/user-attachments/assets/4fa2ecdf-d245-4a90-884f-cb59c43bff13"></div>
+
+- add your **username** and the **botpassword**
   - username = user that owns the bot (e.g. `WALL-E`)
   - botpassword = BOTNAME@BOTPASSWORD (e.g. `REDIRECTFIXER@123456789`)
-- "Fix statement redirects" and "Resolve double redirects" will start a run of that specific cleanup task. You can cancel a run using the "Cancel" button.
+- **"Fix statement redirects"** and **"Resolve double redirects"** will start a run of that specific cleanup task. You can cancel a run using the **"Cancel"** button.
 
 The tool can also save wikibase edit error logs to `.csv` files if desired (ideally these files will be empty).
 
